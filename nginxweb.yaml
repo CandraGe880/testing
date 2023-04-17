@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hpa-candra
+  namespace: magang-space
+  labels: 
+    name: hpa-candra
+spec:
+  selector:
+    matchLabels:
+      app: hpa-candra
+  template:
+    metadata:
+      labels:
+        app: hpa-candra
+    spec:
+      containers:
+      - name: hpa-candra
+        image: nginx
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            memory: "10Mi"
+            cpu: "10m"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: hpa-candra
+spec:
+  type: NodePort
+  selector:
+    name: nginx
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30079
+
+---
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-candra
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: hpa-candra
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 30
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 20
